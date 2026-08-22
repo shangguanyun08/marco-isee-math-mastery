@@ -26,6 +26,7 @@ Then open `http://localhost:8765`.
 
 ```powershell
 node tests/validate.mjs
+node tests/browser-smoke.mjs
 ```
 
 The validation checks all 123 source mappings, all 369 generated round variants, unique answer choices, changing round prompts, and the 20-question session split.

@@ -12,8 +12,10 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), "marco-math-qa-"));
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const serverPort = 8766;
 const debugPort = 9225;
+const liveUrl = process.env.MARCO_TEST_URL || "";
+const targetUrl = liveUrl || `http://127.0.0.1:${serverPort}/`;
 
-const server = spawn("python", ["-m", "http.server", String(serverPort), "--bind", "127.0.0.1"], {
+const server = liveUrl ? null : spawn("python", ["-m", "http.server", String(serverPort), "--bind", "127.0.0.1"], {
   cwd: root,
   windowsHide: true,
   stdio: "ignore",
@@ -26,7 +28,7 @@ const chrome = spawn(chromePath, [
   `--remote-debugging-port=${debugPort}`,
   `--user-data-dir=${profile}`,
   "--window-size=1440,1200",
-  `http://127.0.0.1:${serverPort}/`,
+  targetUrl,
 ], { windowsHide: true, stdio: "ignore" });
 
 async function waitForJson(url, timeout = 10000) {
@@ -109,7 +111,7 @@ async function waitForApp(cdp) {
 
 let cdp;
 try {
-  await waitForServer(`http://127.0.0.1:${serverPort}/`);
+  await waitForServer(targetUrl);
   const pages = await waitForJson(`http://127.0.0.1:${debugPort}/json/list`);
   const page = pages.find((candidate) => candidate.type === "page");
   assert.ok(page?.webSocketDebuggerUrl, "Chrome page target not found");
@@ -195,5 +197,5 @@ try {
 } finally {
   cdp?.close();
   chrome.kill();
-  server.kill();
+  server?.kill();
 }
