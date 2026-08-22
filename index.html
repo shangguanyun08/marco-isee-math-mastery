@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2d67d7" />
+    <meta
+      name="description"
+      content="Marco's text-native ISEE Middle Level QR and MA missed-skill practice."
+    />
+    <title>Marco's ISEE Math Mastery</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%232d67d7'/%3E%3Cpath d='M17 43V18h8l7 12 7-12h8v25h-7V29l-8 12-8-12v14z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">123 verified misses · 7 sessions · 20 questions each</p>
+          <h1>ISEE Math Mastery</h1>
+        </div>
+        <nav aria-label="Main navigation">
+          <button type="button" class="active" data-view="practice">Practice</button>
+          <button type="button" data-view="progress">Progress</button>
+        </nav>
+      </header>
+
+      <section id="session-picker" class="session-picker" aria-label="Choose a practice session"></section>
+      <div class="save-note"><span aria-hidden="true"></span> Progress saves automatically on this device.</div>
+      <div id="announcement" class="announcement" role="status" aria-live="polite" hidden></div>
+      <div id="app"></div>
+    </main>
+
+    <script src="sources.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
