@@ -66,9 +66,11 @@
   }
 
   let state = loadState();
+  let onlineSync = null;
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    onlineSync?.push(state);
   }
 
   function setAnnouncement(message) {
@@ -802,7 +804,7 @@
     }).join("");
     app.innerHTML = `
       <section class="progress-card">
-        <div class="progress-heading"><div><p class="eyebrow">Marco's practice record</p><h2>Progress</h2><p>Round scores and final review counts are stored on this device.</p></div><button type="button" class="secondary-action" data-action="reset-all">Reset All Progress</button></div>
+        <div class="progress-heading"><div><p class="eyebrow">Marco's practice record</p><h2>Progress</h2><p>Round scores and final review counts are saved online for every device.</p></div><button type="button" class="secondary-action" data-action="reset-all">Reset All Progress</button></div>
         <div class="summary-strip"><article><strong>${completed}/${SESSIONS.length}</strong><span>sessions finished</span></article><article><strong>${mastered}</strong><span>sessions mastered</span></article><article><strong>${rounds}</strong><span>rounds completed</span></article><article><strong>${finalReview}</strong><span>skills left after Round 3</span></article></div>
         <div class="result-list">${rows}</div>
       </section>`;
@@ -933,7 +935,7 @@
     else if (target.dataset.action === "next") nextQuestion();
     else if (target.dataset.action === "start-next-round") startNextRound();
     else if (target.dataset.action === "reset-all") {
-      if (window.confirm("Reset every session, score, and retry round on this device?")) {
+      if (window.confirm("Reset every session, score, and retry round on every device?")) {
         state = freshState();
         setAnnouncement("All saved progress was reset.");
         saveState();
@@ -949,5 +951,25 @@
     getState: () => state,
   };
 
+  onlineSync = window.MarcoOnlineSync?.create({
+    appId: "marco-isee-math-mastery",
+    studentName: "Marco",
+    validate: (value) => Boolean(value?.version === 1 && value.sessions && value.sessions["1"]),
+    score: (value) => Object.values(value.sessions || {}).reduce(
+      (total, session) => total +
+        (session.history || []).reduce((sum, round) => sum + (round.total || 0), 0) +
+        Object.keys(session.answers || {}).length,
+      0,
+    ),
+    onRemote: (value) => {
+      state = value;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setAnnouncement("Progress updated from another device.");
+      render();
+    },
+  }) || null;
+
   render();
+  onlineSync?.start(state);
 })();
+
