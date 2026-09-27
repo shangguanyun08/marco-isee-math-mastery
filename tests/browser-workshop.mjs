@@ -27,10 +27,16 @@ try{
   await go(base);
   assert.equal(await evaluate(`document.querySelectorAll('.session-card').length`),6);await shot('library-desktop');
   await go(base+'session-6/');
-  assert.equal(await evaluate(`document.querySelectorAll('.part-nav a').length`),5);
-  assert.equal(await evaluate(`document.querySelectorAll('.question').length`),23);
-  assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),23);
-  await shot('review-desktop');
+  assert.equal(await evaluate(`document.querySelectorAll('.part-nav a').length`),4);
+  assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.part`),2);
+  assert.match(await evaluate(`document.querySelector('.stage-head .eyebrow').textContent`),/SUB-SESSION 1 OF 4/);
+  assert.equal(await evaluate(`document.querySelectorAll('.question').length`),0);
+  assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),0);
+  await shot('practice-welcome-desktop');
+  await go(base+'session-6/?part=1');
+  assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.part`),2);
+  assert.equal(await evaluate(`document.querySelectorAll('[data-action=reviewed]').length`),0);
+  assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),0);
   await go(base+'session-6/?part=2');
   await evaluate(`document.querySelector('[data-action=start]').click()`);
   assert.equal(await evaluate(`document.querySelectorAll('.question').length`),23);
@@ -39,7 +45,8 @@ try{
   assert.match(wrong.feedback,/Not quite/);assert.match(wrong.solution,/1, −3/);
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('#q-101 .choice.wrong')).backgroundColor`),'rgb(255, 240, 234)');
   await evaluate(`document.querySelector('#q-101').scrollIntoView()`);await shot('wrong-explanation');
-  await send('Page.reload',{ignoreCache:true});await delay(400);
+  await send('Page.reload',{ignoreCache:true});
+  for(let i=0;i<150;i++){await delay(100);if(await evaluate(`!!window.__MARCO_REVIEW_TEST__`))break;}
   assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-2'][0].answers[101].correct`),false);
   await go(base+'session-6/?part=3');await evaluate(`document.querySelector('[data-action=start]').click()`);
   const promptA=await evaluate(`document.querySelector('.prompt').textContent`);
@@ -75,5 +82,5 @@ try{
   await evaluate(`document.querySelector('.question').scrollIntoView()`);await shot('practice-mobile');
   assert.equal(await evaluate(`document.documentElement.scrollWidth<=innerWidth`),true);
   assert.deepEqual(errors,[]);
-  console.log('PASS browser: six subsites, five parts, 20/23 counts, hidden answers, wrong feedback, fresh variants, timer reload/navigation/expiry, repeat history, notes, mobile overflow. Online access blocked.');
+  console.log('PASS browser: six subsites, four parts, 20/23 counts, hidden answers, wrong feedback, fresh variants, timer reload/navigation/expiry, repeat history, notes, mobile overflow. Online access blocked.');
 }finally{socket?.close();chrome.kill();server?.kill();}

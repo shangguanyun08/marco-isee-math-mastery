@@ -1,6 +1,6 @@
 # Marco's Math Workshop
 
-The published site now has **six subsites with five parts each**: review, redo, similar A, similar B, and a timed challenge. See [WORKSHOP.md](WORKSHOP.md) for current content, corrections, saving behavior, and tests.
+The published site now has **six subsites with four parts each**: redo, similar A, similar B, and a timed challenge. See [WORKSHOP.md](WORKSHOP.md) for current content, corrections, saving behavior, and tests.
 
 The following describes the historical three-round implementation, which is no longer loaded by the site.
 
