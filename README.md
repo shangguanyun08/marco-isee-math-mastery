@@ -1,4 +1,8 @@
-# Marco's ISEE Math Mastery
+# Marco's Math Workshop
+
+The published site now has **six subsites with five parts each**: review, redo, similar A, similar B, and a timed challenge. See [WORKSHOP.md](WORKSHOP.md) for current content, corrections, saving behavior, and tests.
+
+The following describes the historical three-round implementation, which is no longer loaded by the site.
 
 A text-native, adaptive review site built from Marco's verified Middle Level ISEE math miss list:
 
