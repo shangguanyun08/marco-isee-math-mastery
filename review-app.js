@@ -1,11 +1,13 @@
 (() => {
   'use strict';
   const E=window.MarcoReviewEngine,V=window.MarcoVisuals,{esc,math}=V,KEY='marco-isee-math-mastery-v1';
-  // Keep stored part IDs 2–5 so existing attempts and links remain valid.
-  const names=['','','Redo the questions','Similar practice A','Similar practice B','Timed challenge'];
+  // Preserve stored part IDs and archived part 4 records.
+  const parts=[2,3,5];
+  const names=['','','Redo the questions','Similar practice','Similar practice B (archived)','Timed challenge'];
   const $=s=>document.querySelector(s),session=Number(document.body.dataset.session)||0;
   const requestedPart=Number(new URLSearchParams(location.search).get('part'));
-  const part=[2,3,4,5].includes(requestedPart)?requestedPart:2;
+  const part=requestedPart===4?3:parts.includes(requestedPart)?requestedPart:2;
+  const step=parts.indexOf(part)+1,nextPart=parts[step];
   let state=E.fresh(),sync=null,storageOK=true;
   let saveStatus='Saved on this device.';
   try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved?.version===1)state=E.migrate(saved);}catch{storageOK=false;}
@@ -22,12 +24,24 @@
     if(!meaningful.length)return '';
     return `<details class="records legacy"><summary>Previous three-round site · saved records</summary><p>These scores belong to the earlier practice templates. They are kept separately and do not count toward the rebuilt exercises.</p>${meaningful.map(([n,s])=>`<p><strong>Old Session ${esc(n)}</strong> · ${esc(s.status)} · Round ${s.round} · ${Object.keys(s.answers||{}).length} answers saved</p>${(s.history||[]).map(h=>`<p>Round ${h.round}: ${h.correct}/${h.total} correct</p>`).join('')}`).join('')}</details>`;
   }
+  function archivedSimilar(){
+    const groups=session?[E.groups[session-1]]:E.groups;
+    const entries=groups.flatMap(g=>list(g.number,4).map(r=>({g,r})));
+    if(!entries.length)return '';
+    return `<details class="records archived-similar"><summary>Archived Similar B · saved records (${entries.length})</summary><p>This extra practice set is no longer part of the three-part path. Its answers, scores, and notes are preserved, including in downloaded records.</p>${entries.map(({g,r})=>{
+      const st=E.stats(r);
+      return `<details><summary>Session ${g.number} · ${date(r.startedAt)} · ${st.correct}/${st.total} first-try points · ${r.completedAt?'Complete':'Previously in progress'}</summary><ol>${E.questions(g.number,4).map(q=>{
+        const a=r.answers[q.id],work=r.work?.[q.id]?.text;
+        return `<li>${esc(source(q))}: ${a?(a.tries||[a]).map((t,i)=>`Try ${i+1}: ${t.choice===null?'Unanswered':esc('ABCD'[t.choice]+'. '+q.choices[t.choice])} · ${t.correct?'correct':'incorrect'}`).join('; '):'Not checked'}${work?`<p>Notes: ${esc(work)}</p>`:''}</li>`;
+      }).join('')}</ol></details>`;
+    }).join('')}</details>`;
+  }
   function library(){
     $('#breadcrumb').innerHTML='<a href="https://shangguanyun08.github.io/marco-learning-hub/">← Learning hub</a>';
-    $('#hero').innerHTML='<p class="eyebrow">MARCO’S MATH WORKSHOP</p><h1>A little practice.<br>A stronger next try.</h1><p class="lead">Six focused sessions. Redo the questions, try two fresh sets, and finish with an independent, timed check.</p><div class="hero-facts"><span><b>123</b> source-linked questions</span><span><b>6</b> session subsites</span><span><b>4</b> parts in each</span></div>';
-    $('#content').innerHTML=`<section class="section-intro"><h2>Choose your session</h2><p>Start by redoing the questions. Return for a fresh practice set when you’re ready.</p></section><div class="session-grid">${E.groups.map(s=>{const metas=s.ids.map(id=>window.MARCO_MATH_SOURCES[id-1]),subjects=[...new Set(metas.map(m=>m.subject))].join(' + '),cats=[...new Set(metas.map(m=>m.category.split(' & ')[0]))];const done=[2,3,4,5].filter(p=>list(s.number,p).at(-1)?.completedAt).length;return `<a class="session-card" href="session-${s.number}/"><div class="card-top"><span class="session-number">0${s.number}</span><span class="tag">${subjects}</span></div><h2>Session ${s.number}</h2><p>${cats.map(esc).join(' · ')}</p><div class="card-footer"><span>${s.ids.length} questions · ${s.ids.length}-minute final</span><b>Open →</b></div><div class="mini-progress" aria-label="${done} of 4 practice sets complete"><i style="width:${done*25}%"></i></div><small>${done}/4 practice sets complete</small></a>`;}).join('')}</div><section class="path-guide"><p class="eyebrow">THE FOUR-PART PATH</p><h2>Understand it. Then make it stick.</h2><ol>${names.slice(2).map((name,i)=>`<li><span>${i+1}</span><b>${name}</b><p>${['Redo the source questions in clean text.','New numbers, same underlying skills.','Another fresh set to check understanding.','One minute per question; answers after submission.'][i]}</p></li>`).join('')}</ol></section><p class="source-note">57 QR + 66 MA source references: 119 incorrect answers and 4 blanks. Wording is rebuilt for readability; some diagrams and visual choices use equivalent text descriptions. Eight items include explicit corrections or clarifications. The similar sets are new practice, not additional original mistakes.</p>${legacy()}`;
+    $('#hero').innerHTML='<p class="eyebrow">MARCO’S MATH WORKSHOP</p><h1>A little practice.<br>A stronger next try.</h1><p class="lead">Six focused sessions. Redo the questions, try a fresh set, and finish with an independent, timed check.</p><div class="hero-facts"><span><b>123</b> source-linked questions</span><span><b>6</b> session subsites</span><span><b>3</b> parts in each</span></div>';
+    $('#content').innerHTML=`<section class="section-intro"><h2>Choose your session</h2><p>Start by redoing the questions. Return for a fresh practice set when you’re ready.</p></section><div class="session-grid">${E.groups.map(s=>{const metas=s.ids.map(id=>window.MARCO_MATH_SOURCES[id-1]),subjects=[...new Set(metas.map(m=>m.subject))].join(' + '),cats=[...new Set(metas.map(m=>m.category.split(' & ')[0]))];const done=parts.filter(p=>list(s.number,p).at(-1)?.completedAt).length;return `<a class="session-card" href="session-${s.number}/"><div class="card-top"><span class="session-number">0${s.number}</span><span class="tag">${subjects}</span></div><h2>Session ${s.number}</h2><p>${cats.map(esc).join(' · ')}</p><div class="card-footer"><span>${s.ids.length} questions · ${s.ids.length}-minute final</span><b>Open →</b></div><div class="mini-progress" aria-label="${done} of 3 practice sets complete"><i style="width:${done/3*100}%"></i></div><small>${done}/3 practice sets complete</small></a>`;}).join('')}</div><section class="path-guide"><p class="eyebrow">THE THREE-PART PATH</p><h2>Understand it. Then make it stick.</h2><ol>${parts.map((p,i)=>`<li><span>${i+1}</span><b>${names[p]}</b><p>${['Redo the source questions in clean text.','New numbers, same underlying skills.','One minute per question; answers after submission.'][i]}</p></li>`).join('')}</ol></section><p class="source-note">57 QR + 66 MA source references: 119 incorrect answers and 4 blanks. Wording is rebuilt for readability; some diagrams and visual choices use equivalent text descriptions. Eight items include explicit corrections or clarifications. The similar sets are new practice, not additional original mistakes.</p>${archivedSimilar()}${legacy()}`;
   }
-  function stageNav(){return `<nav class="part-nav" aria-label="Session parts">${names.slice(2).map((name,i)=>{const p=i+2;return `<a href="?part=${p}" class="${part===p?'selected':''}" ${part===p?'aria-current="page"':''}><span>0${p-1}</span><b>${name}</b><small>${statText(session,p)}</small></a>`;}).join('')}</nav>`;}
+  function stageNav(){return `<nav class="part-nav" aria-label="Session parts">${parts.map((p,i)=>{return `<a href="?part=${p}" class="${part===p?'selected':''}" ${part===p?'aria-current="page"':''}><span>0${i+1}</span><b>${names[p]}</b><small>${statText(session,p)}</small></a>`;}).join('')}</nav>`;}
   function question(q,i,run){
     const answer=run?.answers[q.id],closed=E.resolved(answer)||!!run?.completedAt;
     const pending=run?.pending[q.id],selected=closed?answer?.choice:(!answer||pending?.at>answer.at?pending?.choice:undefined);
@@ -40,8 +54,8 @@
   function subsite(){
     const group=E.groups[session-1],count=group.ids.length,run=current(),st=E.stats(run);
     $('#breadcrumb').innerHTML=`<a href="../">← All six sessions</a><span>/</span><span>Session ${session}</span>`;
-    $('#hero').innerHTML=`<p class="eyebrow">SESSION ${String(session).padStart(2,'0')} · ${count} QUESTIONS</p><h1>Your four-part<br>practice path.</h1><p class="lead">Redo the problem. Try it two new ways. Finish with a ${count}-minute challenge.</p>`;
-    let body=stageNav()+`<section class="stage-head" id="stage"><div><p class="eyebrow">SUB-SESSION ${part-1} OF 4</p><h2>${names[part]}</h2><p>${part===2?'Redo all the source-linked questions. A first wrong answer gets one more try. The answer, trick, and explanation appear when you solve it or after your second try.':part===5?`${count} new questions. One ${count}-minute timer covers the whole test. No solutions until you finish or time runs out.`:'A complete set of new questions matched one-to-one to this session’s source questions.'}</p></div>${run?`<div class="score"><b>${part===5&&!run.completedAt?'—':st.correct+'/'+count}</b><span>${part===5&&!run.completedAt?'Score after finish':'First-try score'}</span></div>`:''}</section>`;
+    $('#hero').innerHTML=`<p class="eyebrow">SESSION ${String(session).padStart(2,'0')} · ${count} QUESTIONS</p><h1>Your three-part<br>practice path.</h1><p class="lead">Redo the problem. Try a similar question. Finish with a ${count}-minute challenge.</p>`;
+    let body=stageNav()+`<section class="stage-head" id="stage"><div><p class="eyebrow">SUB-SESSION ${step} OF 3</p><h2>${names[part]}</h2><p>${part===2?'Redo all the source-linked questions. A first wrong answer gets one more try. The answer, trick, and explanation appear when you solve it or after your second try.':part===5?`${count} new questions. One ${count}-minute timer covers the whole test. No solutions until you finish or time runs out.`:'A complete set of new questions matched one-to-one to this session’s source questions.'}</p></div>${run?`<div class="score"><b>${part===5&&!run.completedAt?'—':st.correct+'/'+count}</b><span>${part===5&&!run.completedAt?'Score after finish':'First-try score'}</span></div>`:''}</section>`;
     if(!run){body+=`<div class="start-panel"><p>${part===5?'Start only when you have enough uninterrupted time. The timer continues if you reload, switch parts, or leave the page.':'A correct first answer earns the point. If you miss it, try once more: no answer, trick, or explanation is shown until your second try. A correct answer ends the question. All questions in this set are included.'}</p><button class="primary" data-action="start">${part===5?'Start '+count+'-minute test':'Start this practice'}</button></div>`;}
     else {
       const qs=E.questions(session,part);
@@ -49,10 +63,10 @@
       if(run?.completedAt)body+=`<section class="completion" role="status"><h2>${run.timedOut?'Time is up.':'Practice complete.'}</h2><p><strong>${st.correct} / ${count}</strong> correct on the first try (${Math.round(st.correct/count*100)}%). ${count-st.correct} to review. Your results are saved.</p></section>`;
       body+=`<div id="questions">${qs.map((q,i)=>question(q,i,run)).join('')}</div>`;
       if(part===5&&!run.completedAt)body+='<div class="next-panel"><button class="primary" data-action="finish">Finish & score timed test</button></div>';
-      if(run?.completedAt)body+=`<div class="next-panel">${part<5?`<a class="primary" href="?part=${part+1}">Next: ${names[part+1]} →</a>`:'<a class="primary" href="../">Return to sessions →</a>'}<button class="secondary" data-action="repeat">Start another attempt</button></div>`;
+      if(run?.completedAt)body+=`<div class="next-panel">${nextPart?`<a class="primary" href="?part=${nextPart}">Next: ${names[nextPart]} →</a>`:'<a class="primary" href="../">Return to sessions →</a>'}<button class="secondary" data-action="repeat">Start another attempt</button></div>`;
     }
     if(list().length)body+=`<details class="records"><summary>Saved attempts (${list().length})</summary>${list().map((r,i)=>{const s=E.stats(r);return `<details><summary>Attempt ${i+1} · ${date(r.startedAt)} · ${r.completedAt?s.correct+'/'+count+' correct':'In progress'}${r.deviceConflict?' · separate device attempt':''}</summary><ol>${E.questions(session,part).map(q=>{const a=r.answers[q.id];return `<li>${esc(source(q))}: ${a?(a.choice===null?'Unanswered':`${'ABCD'[a.choice]} · ${a.correct?'correct':'incorrect'}${a.tries?' · try '+a.tries.length+(E.resolved(a)?'':' · retry available'):''}`):'Not checked'}</li>`;}).join('')}</ol></details>`;}).join('')}</details>`;
-    $('#content').innerHTML=body;
+    $('#content').innerHTML=body+archivedSimilar();
     document.title=`Session ${session} · ${names[part]} · Marco’s Math Workshop`;
   }
   function timers(){

@@ -26,10 +26,22 @@ try{
   await send('Network.setBlockedURLs',{urls:['*api/shared/progress*','*shared-online-sync.js*']});
   await go(base);
   assert.equal(await evaluate(`document.querySelectorAll('.session-card').length`),6);await shot('library-desktop');
+  for(let n=1;n<=6;n++){
+    await go(base+'session-'+n+'/');
+    assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.part-nav a'),a=>a.getAttribute('href'))`),['?part=2','?part=3','?part=5']);
+  }
+  const archivedSnapshot=await evaluate(`(()=>{
+    const t=__MARCO_REVIEW_TEST__,r=t.engine.start(6,4);
+    t.engine.answer(r,101,MarcoQuestionBank.make(101,2).correct);
+    r.work[101]={text:'Retained old notes',at:Date.now()};
+    t.getState().learning.runs['6-4']=[r];
+    localStorage.setItem('marco-isee-math-mastery-v1',JSON.stringify(t.getState()));
+    return JSON.stringify([r]);
+  })()`);
   await go(base+'session-6/');
-  assert.equal(await evaluate(`document.querySelectorAll('.part-nav a').length`),4);
+  assert.equal(await evaluate(`document.querySelectorAll('.part-nav a').length`),3);
   assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.part`),2);
-  assert.match(await evaluate(`document.querySelector('.stage-head .eyebrow').textContent`),/SUB-SESSION 1 OF 4/);
+  assert.match(await evaluate(`document.querySelector('.stage-head .eyebrow').textContent`),/SUB-SESSION 1 OF 3/);
   assert.equal(await evaluate(`document.querySelectorAll('.question').length`),0);
   assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),0);
   await shot('practice-welcome-desktop');
@@ -68,12 +80,22 @@ try{
   for(let i=0;i<150;i++){await delay(100);if(await evaluate(`!!window.__MARCO_REVIEW_TEST__`))break;}
   assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-2'][0].answers[101].correct`),false);
   await go(base+'session-6/?part=3');await evaluate(`document.querySelector('[data-action=start]').click()`);
-  const promptA=await evaluate(`document.querySelector('.prompt').textContent`);
-  await go(base+'session-6/?part=4');await evaluate(`document.querySelector('[data-action=start]').click()`);
-  const promptB=await evaluate(`document.querySelector('.prompt').textContent`);
-  // The graph-based first question differs by coordinate values in its visual.
-  assert.notEqual(await evaluate(`JSON.stringify(MarcoQuestionBank.make(101,1).visual)`),await evaluate(`JSON.stringify(MarcoQuestionBank.make(101,2).visual)`));
+  const similarRunId=await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-3'][0].id`);
+  await go(base+'session-6/?part=4');
+  assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.part`),3);
+  assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-3'][0].id`),similarRunId);
+  assert.equal(await evaluate(`JSON.stringify(__MARCO_REVIEW_TEST__.getState().learning.runs['6-4'])`),archivedSnapshot);
+  assert.match(await evaluate(`document.querySelector('.archived-similar').textContent`),/Retained old notes/);
+  await evaluate(`(()=>{
+    const t=__MARCO_REVIEW_TEST__,r=t.getState().learning.runs['6-3'][0];
+    for(const q of t.engine.questions(6,3))t.engine.answer(r,q.id,q.correct);
+    localStorage.setItem('marco-isee-math-mastery-v1',JSON.stringify(t.getState()));
+  })()`);
+  await go(base+'session-6/?part=3');
+  assert.equal(await evaluate(`document.querySelector('.next-panel a.primary').getAttribute('href')`),'?part=5');
+  assert.notEqual(await evaluate(`JSON.stringify(MarcoQuestionBank.make(101,1).visual)`),await evaluate(`JSON.stringify(MarcoQuestionBank.make(101,3).visual)`));
   await go(base+'session-6/?part=5');assert.equal(await evaluate(`document.querySelectorAll('.question').length`),0);
+  assert.match(await evaluate(`document.querySelector('.stage-head .eyebrow').textContent`),/SUB-SESSION 3 OF 3/);
   await evaluate(`document.querySelector('[data-action=start]').click()`);
   assert.equal(await evaluate(`document.querySelectorAll('.question').length`),23);
   const deadline=await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-5'][0].deadlineAt`);
@@ -103,5 +125,5 @@ try{
   await evaluate(`document.querySelector('.question').scrollIntoView()`);await shot('practice-mobile');
   assert.equal(await evaluate(`document.documentElement.scrollWidth<=innerWidth`),true);
   assert.deepEqual(errors,[]);
-  console.log('PASS browser: six subsites, four parts, 20/23 counts, hidden answers, wrong feedback, fresh variants, timer reload/navigation/expiry, repeat history, notes, mobile overflow. Online access blocked.');
+  console.log('PASS browser: six subsites, three parts, preserved archived records, 20/23 counts, hidden answers, wrong feedback, fresh variants, timer reload/navigation/expiry, repeat history, notes, mobile overflow. Online access blocked.');
 }finally{socket?.close();chrome.kill();server?.kill();}

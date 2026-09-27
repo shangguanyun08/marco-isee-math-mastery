@@ -1,15 +1,14 @@
-# Six-session, four-part workshop
+# Six-session, three-part workshop
 
 Subsites: `session-1/` through `session-6/`. Counts: **20, 20, 20, 20, 20, 23** (57 QR + 66 MA references).
 
-Each subsite has four parts:
+Each subsite has three parts:
 
 1. Redo: source-based questions rebuilt as text, with explicit corrections where needed.
-2. Similar A: one fresh counterpart per source item.
-3. Similar B: another complete counterpart set.
-4. Timed: a third new set, one minute per question; 20 minutes in Sessions 1–5, 23 minutes in Session 6.
+2. Similar: one fresh counterpart per source item.
+3. Timed: a separate new set, one minute per question; 20 minutes in Sessions 1–5, 23 minutes in Session 6.
 
-There are 123 source-based redo questions and 369 similar questions. Each stage includes the whole group, not only errors from the preceding stage. Untimed practice allows two tries: the first wrong answer reveals no solution, tip, correct-choice highlight, or detailed source correction. A correct answer or the second checked answer locks the question and shows the answer, explanation, and labeled “Trick / quick method.” Only first-try correct answers earn points. Both tries persist across reloads and sync. Previously revealed records remain completed. The timed test saves selections without feedback until submission/expiry, when every solution also includes its trick. Start sets an absolute deadline that persists through reloads and navigation. At expiry, selected answers score and blanks earn zero. Separate attempts remain in history.
+The active path has 123 source-based redo questions, 123 similar questions, and 123 timed questions. The extra 123 Similar B questions remain in the bank to support archived records. Each stage includes the whole group, not only errors from the preceding stage. Untimed practice allows two tries: the first wrong answer reveals no solution, tip, correct-choice highlight, or detailed source correction. A correct answer or the second checked answer locks the question and shows the answer, explanation, and labeled “Trick / quick method.” Only first-try correct answers earn points. Both tries persist across reloads and sync. Previously revealed records remain completed. The timed test saves selections without feedback until submission/expiry, when every solution also includes its trick. Start sets an absolute deadline that persists through reloads and navigation. At expiry, selected answers score and blanks earn zero. Separate attempts remain in history.
 
 ## Content and corrections
 
@@ -29,7 +28,7 @@ Full source notes appear after checking a redo, not before an answer. Original k
 
 ## Progress
 
-The former unscored review stage has been removed. Visible stages are numbered 1–4, while internal part IDs remain 2–5 to preserve all existing attempts and links. Default and legacy ?part=1 links open redo.
+The former unscored review stage has been removed. Visible stages are numbered 1–3, while active internal part IDs remain 2, 3, and 5 to preserve existing attempts and timer deadlines. Part 4 (Similar B) records remain available in a read-only archive and downloaded records; old ?part=4 links open Similar practice (part 3) without changing either set of records. Default and legacy ?part=1 links open redo.
 
 The existing local key (`marco-isee-math-mastery-v1`) and online app ID (`marco-isee-math-mastery`) are retained. Earlier records keep their original `sessions` field; new runs use a separate `learning` field. A legacy-record panel appears on the library page when records exist. Old template scores do not count toward rebuilt questions.
 
@@ -44,4 +43,4 @@ node tests/browser-workshop.mjs
 python -m http.server 8766
 ```
 
-Tests cover 492 question structures, source answers, numeric variants, grouping, scoring, expiry, legacy preservation, merging, and first-visit sync against a mock server. Browser QA checks four parts, feedback, hidden answers, 20/23 counts, reload/navigation/expiry, notes, repeat history, and mobile overflow. Screenshots stay in ignored `tmp/workshop-qa/`.
+Tests cover 492 question structures, source answers, numeric variants, grouping, scoring, expiry, legacy preservation, merging, and first-visit sync against a mock server. Browser QA checks three parts, archived-record preservation, feedback, hidden answers, 20/23 counts, reload/navigation/expiry, notes, repeat history, and mobile overflow. Screenshots stay in ignored `tmp/workshop-qa/`.
