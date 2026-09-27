@@ -9,7 +9,7 @@ Each subsite has four parts:
 3. Similar B: another complete counterpart set.
 4. Timed: a third new set, one minute per question; 20 minutes in Sessions 1–5, 23 minutes in Session 6.
 
-There are 123 source-based redo questions and 369 similar questions. Each stage includes the whole group, not only errors from the preceding stage. Untimed practice locks the first checked answer and shows an explanation with a labeled “Trick / quick method.” The timed test saves selections without feedback until submission/expiry, when every solution also includes its trick. Start sets an absolute deadline that persists through reloads and navigation. At expiry, selected answers score and blanks earn zero. Separate attempts remain in history.
+There are 123 source-based redo questions and 369 similar questions. Each stage includes the whole group, not only errors from the preceding stage. Untimed practice allows two tries: the first wrong answer reveals no solution, tip, correct-choice highlight, or detailed source correction. A correct answer or the second checked answer locks the question and shows the answer, explanation, and labeled “Trick / quick method.” Only first-try correct answers earn points. Both tries persist across reloads and sync. Previously revealed records remain completed. The timed test saves selections without feedback until submission/expiry, when every solution also includes its trick. Start sets an absolute deadline that persists through reloads and navigation. At expiry, selected answers score and blanks earn zero. Separate attempts remain in history.
 
 ## Content and corrections
 

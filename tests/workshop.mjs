@@ -32,11 +32,34 @@ for(let s=1;s<=6;s++)for(let p=2;p<=5;p++){
   else{assert.equal(r.deadlineAt,1000+qs.length*60000);r.pending[qs[0].id]={choice:qs[0].correct,at:2000};const state=E.fresh();state.learning.runs[E.key(s,p)]=[r];assert.equal(E.expire(state,r.deadlineAt-1),false);assert.equal(E.expire(state,r.deadlineAt),true);assert.equal(E.stats(r).correct,1);assert.equal(E.stats(r).answered,1);assert.equal(Object.keys(r.answers).length,qs.length);assert.equal(E.finish(r),false);}
 }
 const old={version:1,groupingVersion:2,sessions:{1:{status:'active',round:2,answers:{1:{choice:'B',correct:true}},history:[{round:1,total:20,correct:18,wrongIds:[1,2]}]}}};
+// Two-try practice: no early completion/reveal, first-try scoring, and prefix-safe sync.
+for(let part=2;part<=4;part++){
+  const state=E.fresh(),run=E.start(1,part,1000,'retry-test');state.learning.runs[E.key(1,part)]=[run];
+  const qs=E.questions(1,part),q=qs[0],wrong=(q.correct+1)%4;
+  assert.equal(E.answer(run,q.id,wrong,1100),true);
+  assert.equal(E.resolved(run.answers[q.id]),false);assert.equal(E.stats(run).answered,0);
+  const first=E.migrate(state);
+  for(const other of qs.slice(1))E.answer(run,other.id,other.correct,1200);
+  assert.equal(run.completedAt,null);
+  assert.equal(E.merge(state,first).learning.runs[E.key(1,part)][0].completedAt,null);
+  assert.equal(E.answer(run,q.id,q.correct,1300),true);
+  assert.equal(E.resolved(run.answers[q.id]),true);assert.equal(E.stats(run).correct,19);
+  assert.equal(run.answers[q.id].tries.length,2);assert.ok(run.completedAt);
+  assert.equal(E.answer(run,q.id,wrong,1400),false);
+  for(const merged of [E.merge(first,state),E.merge(state,first)]){
+    const runs=merged.learning.runs[E.key(1,part)];assert.equal(runs.length,1);
+    assert.equal(runs[0].answers[q.id].tries.length,2);assert.equal(E.stats(runs[0]).correct,19);
+  }
+  const other=E.migrate(first),r=other.learning.runs[E.key(1,part)][0];E.answer(r,q.id,wrong,1400);
+  assert.equal(E.resolved(r.answers[q.id]),true);assert.equal(E.stats(r).correct,0);
+  assert.equal(E.merge(state,other).learning.runs[E.key(1,part)].length,2);
+}
+assert.equal(E.resolved({choice:0,correct:false,at:100}),true);
 const migrated=E.migrate(old);assert.equal(JSON.stringify(migrated.sessions),JSON.stringify(old.sessions));
 const a=E.migrate(old),r=E.start(1,2,1000,'same-run');a.learning.runs['1-2']=[r];E.answer(r,1,B.make(1).correct,1100);
 const b=E.migrate(old);b.learning.runs['1-2']=[E.start(1,2,1000,'same-run')];E.answer(b.learning.runs['1-2'][0],2,B.make(2).correct,1200);
 const merged=E.merge(a,b);assert.equal(Object.keys(merged.learning.runs['1-2'][0].answers).length,2);assert.equal(JSON.stringify(merged.sessions),JSON.stringify(old.sessions));
-const conflict=E.migrate(a);conflict.learning.runs['1-2'][0].answers[1].choice=(B.make(1).correct+1)%4;assert.equal(E.merge(a,conflict).learning.runs['1-2'].length,2);
+const conflict=E.migrate(a);conflict.learning.runs['1-2'][0].answers[1].choice=(B.make(1).correct+1)%4;conflict.learning.runs['1-2'][0].answers[1].tries[0].choice=(B.make(1).correct+1)%4;assert.equal(E.merge(a,conflict).learning.runs['1-2'].length,2);
 // First-visit sync must read and preserve the learner's earlier record.
 Object.assign(box,{setTimeout,clearTimeout,AbortController,setInterval:()=>0,clearInterval:()=>{},localStorage:{getItem:()=>null,setItem:()=>{}},addEventListener:()=>{}});
 vm.runInContext(fs.readFileSync(new URL('../workshop-sync.js',import.meta.url),'utf8'),box);
