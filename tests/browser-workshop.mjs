@@ -37,6 +37,7 @@ try{
   assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),0);
   const wrong=await evaluate(`(()=>{const q=MarcoQuestionBank.make(101,0),f=document.querySelector('form[data-id="101"]');const i=f.querySelector('input[value="'+((q.correct+1)%4)+'"]');i.click();f.requestSubmit();return {feedback:document.querySelector('#q-101 .feedback').textContent,solution:document.querySelector('#q-101 .solution').textContent};})()`);
   assert.match(wrong.feedback,/Not quite/);assert.match(wrong.solution,/1, −3/);
+  assert.equal(await evaluate(`getComputedStyle(document.querySelector('#q-101 .choice.wrong')).backgroundColor`),'rgb(255, 240, 234)');
   await evaluate(`document.querySelector('#q-101').scrollIntoView()`);await shot('wrong-explanation');
   await send('Page.reload',{ignoreCache:true});await delay(400);
   assert.equal(await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-2'][0].answers[101].correct`),false);
