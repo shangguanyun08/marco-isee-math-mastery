@@ -43,6 +43,11 @@ try{
   assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),0);
   const wrong=await evaluate(`(()=>{const q=MarcoQuestionBank.make(101,0),f=document.querySelector('form[data-id="101"]');const i=f.querySelector('input[value="'+((q.correct+1)%4)+'"]');i.click();f.requestSubmit();return {feedback:document.querySelector('#q-101 .feedback').textContent,solution:document.querySelector('#q-101 .solution').textContent};})()`);
   assert.match(wrong.feedback,/Not quite/);assert.match(wrong.solution,/1, −3/);
+  assert.match(wrong.solution,/TRICK \/ QUICK METHOD/);
+  assert.equal(await evaluate(`document.querySelector('#q-101 .quick-method').textContent`),await evaluate(`MarcoQuestionBank.make(101,0).tip`));
+  await evaluate(`(()=>{const q=MarcoQuestionBank.make(102,0),f=document.querySelector('form[data-id="102"]');f.querySelector('input[value="'+q.correct+'"]').click();f.requestSubmit();})()`);
+  assert.match(await evaluate(`document.querySelector('#q-102 .feedback').textContent`),/Correct/);
+  assert.equal(await evaluate(`document.querySelector('#q-102 .quick-method').innerHTML`),await evaluate(`MarcoVisuals.math(MarcoQuestionBank.make(102,0).tip)`));
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('#q-101 .choice.wrong')).backgroundColor`),'rgb(255, 240, 234)');
   await evaluate(`document.querySelector('#q-101').scrollIntoView()`);await shot('wrong-explanation');
   await send('Page.reload',{ignoreCache:true});
@@ -67,6 +72,8 @@ try{
   assert.equal(await evaluate(`document.querySelector('textarea[data-work="101"]').value`),'My saved steps');
   await evaluate(`__MARCO_REVIEW_TEST__.getState().learning.runs['6-5'][0].deadlineAt=Date.now()-1`);await delay(700);
   assert.equal(await evaluate(`document.querySelectorAll('.solution').length`),23);
+  assert.equal(await evaluate(`document.querySelectorAll('.quick-method').length`),23);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.quick-method')).every(el=>el.textContent.trim().length>12)`),true);
   assert.equal(await evaluate(`document.querySelectorAll('form input:not(:disabled)').length`),0);
   assert.match(await evaluate(`document.querySelector('.completion').textContent`),/Time is up/);
   await evaluate(`document.querySelector('[data-action=repeat]').click()`);
