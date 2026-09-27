@@ -42,7 +42,8 @@ const api = context.__MARCO_MATH_TEST__;
 assert.equal(api.sources.length, 123, "expected every verified QR/MA miss");
 assert.equal(api.sources.filter((item) => item.subject === "QR").length, 57);
 assert.equal(api.sources.filter((item) => item.subject === "MA").length, 66);
-assert.deepEqual(Array.from(api.sessions, (session) => session.ids.length), [20, 20, 20, 20, 20, 20, 3]);
+assert.deepEqual(Array.from(api.sessions, (session) => session.ids.length), [20, 20, 20, 20, 20, 23]);
+assert.equal(new Set(api.sessions.flatMap((session) => session.ids)).size, 123);
 
 for (const source of api.sources) {
   const variants = [1, 2, 3].map((round) => api.makeProblem(source, round));
@@ -58,4 +59,4 @@ for (const source of api.sources) {
 }
 
 assert.match(nodes.get("#app").innerHTML, /Practice the skill, not the screenshot/);
-console.log("Validated 123 sources, 369 round variants, and 20-question session grouping.");
+console.log("Validated 123 entries and six sessions: 20, 20, 20, 20, 20, 23. Structural checks do not certify content quality.");

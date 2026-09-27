@@ -28,7 +28,7 @@ const chrome = spawn(chromePath, [
   `--remote-debugging-port=${debugPort}`,
   `--user-data-dir=${profile}`,
   "--window-size=1440,1200",
-  targetUrl,
+  "about:blank",
 ], { windowsHide: true, stdio: "ignore" });
 
 async function waitForJson(url, timeout = 10000) {
@@ -118,7 +118,25 @@ try {
   cdp = createCdp(page.webSocketDebuggerUrl);
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
+  // Test in an isolated browser without reading or writing Marco's online record.
+  await cdp.send("Network.enable");
+  await cdp.send("Network.setBlockedURLs", { urls: ["*shared-online-sync.js*", "*api/shared/progress*"] });
+  await cdp.send("Page.navigate", { url: targetUrl });
   await waitForApp(cdp);
+
+  const grouping = await evaluate(cdp, `(() => {
+    const api = window.__MARCO_MATH_TEST__;
+    const sizes = api.sessions.map((session) => session.ids.length);
+    document.querySelector('[data-session="6"]').click();
+    document.querySelector('[data-action="start-session"]').click();
+    const activeCount = api.getState().sessions['6'].activeIds.length;
+    const missingSeventh = !document.querySelector('[data-session="7"]');
+    document.querySelector('[data-session="1"]').click();
+    return { sizes, activeCount, missingSeventh };
+  })()`);
+  assert.deepEqual(grouping.sizes, [20, 20, 20, 20, 20, 23]);
+  assert.equal(grouping.activeCount, 23);
+  assert.equal(grouping.missingSeventh, true);
 
   const first = await evaluate(cdp, `(() => {
     document.querySelector('[data-action="start-session"]').click();
@@ -193,7 +211,7 @@ try {
   const mobileShot = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
   fs.writeFileSync(path.join(qa, "mobile-home.png"), Buffer.from(mobileShot.data, "base64"));
 
-  console.log("Browser smoke test passed: wrong-answer explanation, 20-question Round 1, fresh Round 2, and Round 3 stop.");
+  console.log("Browser smoke test passed: six sessions, 23 questions in Session 6, feedback and three-round stop. Online sync was blocked during testing.");
 } finally {
   cdp?.close();
   chrome.kill();

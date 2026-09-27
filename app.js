@@ -4,6 +4,7 @@
   const SOURCES = window.MARCO_MATH_SOURCES || [];
   const LETTERS = ["A", "B", "C", "D"];
   const SESSION_SIZE = 20;
+  const SESSION_COUNT = 6;
   const MAX_ROUNDS = 3;
   const STORAGE_KEY = "marco-isee-math-mastery-v1";
   const CATEGORY_SHORT = {
@@ -21,8 +22,9 @@
   const navButtons = [...document.querySelectorAll("[data-view]")];
 
   const SOURCE_BY_ID = new Map(SOURCES.map((item) => [item.id, item]));
-  const SESSIONS = Array.from({ length: Math.ceil(SOURCES.length / SESSION_SIZE) }, (_, index) => {
-    const items = SOURCES.slice(index * SESSION_SIZE, (index + 1) * SESSION_SIZE);
+  const SESSIONS = Array.from({ length: SESSION_COUNT }, (_, index) => {
+    const end = index === SESSION_COUNT - 1 ? SOURCES.length : (index + 1) * SESSION_SIZE;
+    const items = SOURCES.slice(index * SESSION_SIZE, end);
     return {
       number: index + 1,
       ids: items.map((item) => item.id),
@@ -49,6 +51,7 @@
   function freshState() {
     return {
       version: 1,
+      groupingVersion: 2,
       view: "practice",
       selectedSession: 1,
       sessions: Object.fromEntries(SESSIONS.map((session) => [session.number, freshSession()])),
@@ -58,11 +61,71 @@
   function loadState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (parsed?.version === 1 && parsed.sessions && parsed.sessions["1"]) return parsed;
+      if (parsed?.version === 1 && parsed.sessions && parsed.sessions["1"]) return regroupProgress(parsed);
     } catch {
       // Start clean if local data is incomplete.
     }
     return freshState();
+  }
+
+  function prepareRound(session, round, ids) {
+    session.round = round;
+    session.activeIds = [...ids];
+    session.pendingIds = [];
+    const saved = session.carriedRounds?.[round] || {};
+    session.answers = Object.fromEntries(ids.filter((id) => saved[id]).map((id) => [id, saved[id]]));
+    if (session.carriedRounds) delete session.carriedRounds[round];
+    const firstUnanswered = ids.findIndex((id) => !session.answers[id]);
+    session.position = Math.max(0, firstUnanswered);
+    session.status = "active";
+    return firstUnanswered === -1;
+  }
+
+  function regroupProgress(previous) {
+    if (previous.groupingVersion === 2) return previous;
+    const regrouped = JSON.parse(JSON.stringify(previous));
+    regrouped.groupingVersion = 2;
+    regrouped.selectedSession = Math.min(SESSION_COUNT, previous.selectedSession || 1);
+    const merged = freshSession();
+    const oldParts = [previous.sessions["6"], previous.sessions["7"]];
+    if (oldParts.some((part) => part && part.status !== "not-started")) {
+      // Keep original records, including exact choices and dates, for recovery.
+      regrouped.previousGrouping = { session6: oldParts[0], session7: oldParts[1] };
+      merged.carriedRounds = {};
+      oldParts.forEach((part, index) => {
+        if (!part) return;
+        let activeIds = SOURCES.slice(100 + index * 20, 120 + index * 20).map((item) => item.id);
+        for (const result of part.history || []) {
+          const answers = merged.carriedRounds[result.round] ||= {};
+          activeIds.forEach((id) => {
+            // Older completed rounds retain outcomes but not every choice letter.
+            answers[id] = { correct: !result.wrongIds.includes(id), recovered: true };
+          });
+          activeIds = result.wrongIds;
+        }
+        if (part.round > 0) {
+          Object.assign(merged.carriedRounds[part.round] ||= {}, part.answers || {});
+        }
+      });
+      let ids = SESSIONS[5].ids;
+      for (let round = 1; round <= MAX_ROUNDS; round += 1) {
+        if (!prepareRound(merged, round, ids)) break;
+        const wrongIds = ids.filter((id) => !merged.answers[id].correct);
+        merged.history.push({ round, total: ids.length, correct: ids.length - wrongIds.length,
+          wrongIds, finishedAt: new Date().toISOString() });
+        if (!wrongIds.length || round === MAX_ROUNDS) {
+          merged.status = "completed";
+          merged.mastered = !wrongIds.length;
+          merged.finalMissed = wrongIds;
+          break;
+        }
+        ids = wrongIds;
+      }
+      merged.updatedAt = new Date().toISOString();
+    }
+    regrouped.sessions["6"] = merged;
+    delete regrouped.sessions["7"];
+    return regrouped;
   }
 
   let state = loadState();
@@ -674,7 +737,7 @@
         </div>
         <div class="welcome-art" aria-label="Three-round practice path">
           <div class="round-stack">
-            <article><b>1</b><div><strong>First practice</strong><small>Up to 20 questions from Marco's verified miss list.</small></div></article>
+            <article><b>1</b><div><strong>First practice</strong><small>${sessionMeta.ids.length} questions from Marco's verified miss list.</small></div></article>
             <article><b>2</b><div><strong>New-number retry</strong><small>Only skills missed in Round 1 return.</small></div></article>
             <article><b>3</b><div><strong>Final practice</strong><small>One last fresh version, then the session ends.</small></div></article>
           </div>
@@ -701,9 +764,7 @@
     }).join("");
     const grid = session.activeIds.map((id, index) => {
       const answer = session.answers[String(id)];
-      const item = SOURCE_BY_ID.get(id);
-      const itemProblem = makeProblem(item, session.round);
-      const resultClass = answer ? (answer.choice === itemProblem.answer ? "correct" : "wrong") : "";
+      const resultClass = answer ? (answer.correct ? "correct" : "wrong") : "";
       return `<span class="${resultClass} ${index === session.position ? "current" : ""}">${index + 1}</span>`;
     }).join("");
     const feedback = picked
@@ -711,7 +772,7 @@
         ? `<div class="instant-feedback correct"><span class="feedback-mark">✓</span><div><strong>Correct!</strong><span>Nice work—this skill will not return in the next round.</span></div></div>`
         : `<div class="instant-feedback wrong"><span class="feedback-mark">×</span><div><strong>Not quite. The correct answer is ${problem.answer}: ${esc(problem.choices[LETTERS.indexOf(problem.answer)])}.</strong><span>${esc(problem.explanation)}</span></div></div>`
       : "";
-    const isLast = session.position === session.activeIds.length - 1;
+    const isLast = !session.activeIds.slice(session.position + 1).some((id) => !session.answers[id]);
     app.innerHTML = `
       <section class="practice-card">
         <aside class="round-panel">
@@ -885,8 +946,9 @@
     const session = sessionState();
     const id = session.activeIds[session.position];
     if (!session.answers[String(id)]) return;
-    if (session.position < session.activeIds.length - 1) {
-      session.position += 1;
+    const nextPosition = session.activeIds.findIndex((id, index) => index > session.position && !session.answers[id]);
+    if (nextPosition !== -1) {
+      session.position = nextPosition;
       session.updatedAt = new Date().toISOString();
       setAnnouncement("");
       saveState();
@@ -899,13 +961,12 @@
   function startNextRound() {
     const session = sessionState();
     if (session.status !== "between" || session.round >= MAX_ROUNDS) return;
-    session.round += 1;
-    session.activeIds = [...session.pendingIds];
-    session.pendingIds = [];
-    session.position = 0;
-    session.answers = {};
-    session.status = "active";
+    const alreadyAnswered = prepareRound(session, session.round + 1, session.pendingIds);
     session.updatedAt = new Date().toISOString();
+    if (alreadyAnswered) {
+      finishRound();
+      return;
+    }
     setAnnouncement(`Round ${session.round} started with fresh numbers and answer choices.`);
     saveState();
     render();
@@ -946,6 +1007,7 @@
 
   window.__MARCO_MATH_TEST__ = {
     makeProblem,
+    regroupProgress,
     sources: SOURCES,
     sessions: SESSIONS,
     getState: () => state,
@@ -962,10 +1024,11 @@
       0,
     ),
     onRemote: (value) => {
-      state = value;
+      state = regroupProgress(value);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       setAnnouncement("Progress updated from another device.");
       render();
+      if (value.groupingVersion !== 2) onlineSync?.push(state);
     },
   }) || null;
 

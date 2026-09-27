@@ -4,7 +4,7 @@ A text-native, adaptive review site built from Marco's verified Middle Level ISE
 
 - 57 Quantitative Reasoning skills
 - 66 Mathematics Achievement skills
-- 7 sessions, with at most 20 questions per session
+- 6 sessions: 20 questions in Sessions 1–5, and 23 in Session 6
 - immediate explanations for wrong answers
 - up to 3 rounds per session
 - fresh numbers and reshuffled answer positions in retry rounds
@@ -26,7 +26,8 @@ Then open `http://localhost:8765`.
 
 ```powershell
 node tests/validate.mjs
+node tests/regroup-progress.mjs
 node tests/browser-smoke.mjs
 ```
 
-The validation checks all 123 source mappings, all 369 generated round variants, unique answer choices, changing round prompts, and the 20-question session split.
+The validation checks all 123 source mappings, the six-session split (20, 20, 20, 20, 20, 23), and migration of saved progress from the previous seven-session layout. The original question-content issues documented in the audit remain separate from this grouping update.
